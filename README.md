@@ -8,7 +8,7 @@ Pessoa 1 fala português; Pessoa 2 fala o idioma escolhido no seletor. A direç�
 
 O modo padrão funciona sem conta ou chave paga. Selecione Pessoa 1 ou Pessoa 2 antes de falar: a seleção é manual. O app traduz e mantém até 30 falas na memória da página; fechar/recarregar apaga o histórico. A MyMemory tem limites gratuitos e o reconhecimento de voz depende do navegador e de internet.
 
-Pode hospedar os arquivos estáticos gratuitamente em um serviço HTTPS: index.html, free.js, ai.js, sw.js, manifest.webmanifest e os dois ícones PNG. O modo gratuito não precisa do servidor Node. A separação automática via AssemblyAI é opcional e continua exigindo uma chave/conta com créditos.
+Pode hospedar os arquivos estáticos gratuitamente em um serviço HTTPS: index.html, styles.css, free.js, ai.js, mic-support.js, sw.js, manifest.webmanifest e os dois ícones PNG. O modo gratuito não precisa do servidor Node. A separação automática via AssemblyAI é opcional e continua exigindo uma chave/conta com créditos.
 
 Para testar localmente, use `node server.mjs` ou `python3 -m http.server 8000`. Para instalar no celular, é necessário um endereço HTTPS público, ainda não configurado. Não há APK nem publicação na loja.
 

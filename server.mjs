@@ -1,8 +1,8 @@
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 const root=new URL('./',import.meta.url);
-const files={'/':'index.html','/index.html':'index.html','/mic-support.js':'mic-support.js','/free.js':'free.js','/ai.js':'ai.js','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png'};
-const types={html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',webmanifest:'application/manifest+json',png:'image/png'};
+const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/mic-support.js':'mic-support.js','/free.js':'free.js','/ai.js':'ai.js','/manifest.webmanifest':'manifest.webmanifest','/sw.js':'sw.js','/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png'};
+const types={css:'text/css; charset=utf-8',html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',webmanifest:'application/manifest+json',png:'image/png'};
 const jobs=new Map();let busy=false;
 async function provider(path,options={}){const response=await fetch('https://api.assemblyai.com/v2/'+path,{...options,headers:{authorization:process.env.ASSEMBLYAI_API_KEY,...options.headers},signal:AbortSignal.timeout(60000)});if(!response.ok)throw Error('O serviço de IA recusou a solicitação. Verifique a chave e os créditos.');return response.json()}
 const server=http.createServer(async(req,res)=>{
