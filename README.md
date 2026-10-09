@@ -14,7 +14,7 @@ Para testar localmente, use `node server.mjs` ou `python3 -m http.server 8000`. 
 
 # Sintra
 
-Aplicação web mobile instalável (PWA). Tradução pt-BR → inglês, espanhol, francês ou alemão, reconhecimento de voz do navegador e leitura da tradução. O modo IA usa AssemblyAI para transcrever uma gravação de até 60 segundos e separar os falantes por Pessoa A/B/etc. A análise acontece depois da gravação; não identifica pessoas pelo nome nem oferece diarização simultânea em tempo real.
+Aplicação web mobile instalável (PWA). Tradução entre pt-BR e 16 opções de idioma, reconhecimento de voz do navegador e leitura da tradução. O modo IA usa AssemblyAI para transcrever uma gravação de até 60 segundos e separar os falantes por Pessoa A/B/etc. A análise acontece depois da gravação; não identifica pessoas pelo nome nem oferece diarização simultânea em tempo real.
 
 ## Executar
 
@@ -61,3 +61,9 @@ Teste automatizado no Chromium: recusa do reconhecimento simulada, captura com m
 Cada gravação usa uma instância independente de reconhecimento, configurada para uma fala por vez. O texto é reconstruído a partir do resultado completo do navegador, evitando acrescentar novamente resultados finais reenviados. A tradução e a leitura aguardam o término da captura. Eventos atrasados de sessões canceladas são ignorados. Repetições que fazem parte da fala, como “não, não”, são preservadas.
 
 A suíte inclui cinco testes de regressão para resultados repetidos, revisões parciais, eventos atrasados, exclusão entre captura e leitura e falhas do reconhecimento. Os testes usam eventos simulados; a qualidade da transcrição real continua dependendo do serviço de voz do navegador e do ambiente acústico. O modo gratuito não ativa AssemblyAI.
+
+## Idiomas disponíveis
+
+Português (Brasil) como idioma da Pessoa 1; a Pessoa 2 pode usar inglês, espanhol, francês, alemão, italiano, japonês, chinês (mandarim), coreano, russo, árabe, hindi, turco, holandês, polonês, sueco ou grego. A tradução funciona nos dois sentidos. Campos e histórico ajustam a direção do texto automaticamente para escrita como a árabe.
+
+A disponibilidade do reconhecimento e das vozes de leitura depende do navegador, sistema e idioma. A lista de idiomas não garante que todos tenham voz instalada no aparelho; a entrada por texto continua disponível. A qualidade e disponibilidade da tradução dependem da MyMemory. As verificações locais usam respostas simuladas, não validação linguística por falantes de todos os idiomas.
