@@ -41,7 +41,7 @@ O reconhecimento de voz pode enviar áudio ao serviço do navegador. A traduçã
 ```sh
 node --check server.mjs
 node --check ai.js
-node --test tests/server.test.mjs
+node --test tests/*.test.mjs
 ```
 
 A suíte local verifica arquivos servidos, manifesto e ausência de configuração da IA. Não valida a precisão do reconhecimento ou da separação de falantes; isso exige uma chave válida e teste com áudio real em um celular.
@@ -55,3 +55,9 @@ A permissão do site e a disponibilidade do serviço de reconhecimento são veri
 - Se detectar áudio, mas o reconhecimento recusar, o acesso ao microfone está funcionando; o serviço de reconhecimento ou alguma política do navegador pode estar indisponível. Reinicie ou teste outro navegador compatível.
 
 Teste automatizado no Chromium: recusa do reconhecimento simulada, captura com microfone virtual e recusa de captura simulada. Isso não verifica as permissões nem o hardware do aparelho do usuário.
+
+## Correção de repetição na voz
+
+Cada gravação usa uma instância independente de reconhecimento, configurada para uma fala por vez. O texto é reconstruído a partir do resultado completo do navegador, evitando acrescentar novamente resultados finais reenviados. A tradução e a leitura aguardam o término da captura. Eventos atrasados de sessões canceladas são ignorados. Repetições que fazem parte da fala, como “não, não”, são preservadas.
+
+A suíte inclui cinco testes de regressão para resultados repetidos, revisões parciais, eventos atrasados, exclusão entre captura e leitura e falhas do reconhecimento. Os testes usam eventos simulados; a qualidade da transcrição real continua dependendo do serviço de voz do navegador e do ambiente acústico. O modo gratuito não ativa AssemblyAI.

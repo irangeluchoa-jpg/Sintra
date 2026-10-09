@@ -41,21 +41,103 @@ Fale ou escreva aqui…" maxlength="500" aria-describedby="privacy"></textarea><
 const $=id=>document.getElementById(id);
 const locales={pt:'pt-BR',en:'en-US',es:'es-ES',fr:'fr-FR',de:'de-DE'};
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recognition,recording=false,request=null,generation=0,lastTranslation='',lastLanguage='en',baseText='',sessionFinal='',hadSpeechError=false;
+let recognition, voiceSession=null, recording=false, request=null, generation=0, lastTranslation='', lastLanguage='en';
 const status=(text,error=false)=>{$('status').textContent=text;$('status').classList.toggle('error',error)};
 function stopAudio(){if('speechSynthesis' in window)window.speechSynthesis.cancel()}
 function invalidate(){generation++;if(request)request.abort();request=null;$('translate').disabled=false;lastTranslation='';$('speak').disabled=true;$('copy').disabled=true;stopAudio();$('translation').textContent='Sua tradução aparece aqui.';$('translation').classList.add('empty')}
-function setRecording(value){recording=value;$('mic').classList.toggle('recording',value);$('mic').setAttribute('aria-pressed',String(value));$('mic').setAttribute('aria-label',value?'Parar gravação':'Iniciar gravação');$('captured').readOnly=value}
-function speak(){if(!lastTranslation)return;if(!('speechSynthesis' in window)){status('Este navegador não oferece leitura de voz.',true);return}stopAudio();const utterance=new SpeechSynthesisUtterance(lastTranslation);utterance.lang=locales[lastLanguage];const voices=window.speechSynthesis.getVoices();const voice=voices.find(v=>v.lang===utterance.lang)||voices.find(v=>v.lang.startsWith(lastLanguage));if(voice)utterance.voice=voice;utterance.onerror=e=>{if(e.error!=='interrupted'&&e.error!=='canceled')status('Não foi possível reproduzir o áudio. Toque em ouvir para tentar novamente.',true)};window.speechSynthesis.speak(utterance)}
-async function translate(){const text=$('captured').value.trim();if(!text){status('Fale ou digite uma frase primeiro.',true);return}if(new TextEncoder().encode(text).length>500){status('Use uma frase menor: a API aceita até 500 bytes por tradução.',true);return}invalidate();const version=generation;const person=window.sintraPerson||'1';const sourceLanguage=person==='1'?'pt':$('language').value;const language=person==='1'?$('language').value:'pt';const controller=new AbortController();request=controller;$('translate').disabled=true;status('Traduzindo…');const timeout=setTimeout(()=>controller.abort(),15000);try{const url=new URL('https://api.mymemory.translated.net/get');url.searchParams.set('q',text);url.searchParams.set('langpair',sourceLanguage+'|'+language);const response=await fetch(url,{signal:controller.signal});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();if(Number(data.responseStatus)!==200||data.quotaFinished||!data.responseData?.translatedText)throw new Error('API');if(version!==generation)return;const decoded=new DOMParser().parseFromString(data.responseData.translatedText,'text/html').documentElement.textContent;lastTranslation=decoded;lastLanguage=language;window.dispatchEvent(new CustomEvent('sintra-translation',{detail:{text,translation:decoded,language,person}}));$('translation').textContent=decoded;$('translation').classList.remove('empty');$('copy').disabled=false;$('speak').disabled=!('speechSynthesis' in window);status('Tradução pronta. Pode continuar a conversa.');if($('auto').checked&&!recording)speak()}catch(error){if(version!==generation)return;status(error.name==='AbortError'?'A tradução demorou demais. Tente novamente.':'Não foi possível traduzir. Verifique a conexão ou o limite gratuito da MyMemory.',true)}finally{clearTimeout(timeout);if(version===generation){request=null;$('translate').disabled=false}}}
-if(Recognition){recognition=new Recognition();recognition.lang='pt-BR';recognition.continuous=true;recognition.interimResults=true;recognition.onstart=()=>{setRecording(true);status('Ouvindo… Toque novamente para parar.')};recognition.onresult=event=>{let interim='';for(let i=event.resultIndex;i<event.results.length;i++){const phrase=event.results[i][0].transcript;if(event.results[i].isFinal)sessionFinal+=phrase+' ';else interim+=phrase}$('captured').value=[baseText,sessionFinal,interim].filter(Boolean).join(' ').trim();// A tradução é feita ao finalizar a gravação, sem enviar transcrições parciais.
-};recognition.onerror=event=>{hadSpeechError=true;setRecording(false);$('mic-help').open=true;const messages={'not-allowed':'O reconhecimento de voz foi recusado. Mesmo com a permissão do site ativa, o Windows ou o serviço de voz podem bloquear o acesso. Use Testar microfone abaixo.','audio-capture':'Nenhum microfone disponível. Você pode digitar o texto.','no-speech':'Não ouvi uma frase. Toque para tentar novamente.',network:'O serviço de voz está indisponível. Verifique sua conexão.','service-not-allowed':'O serviço de reconhecimento de voz está bloqueado neste navegador. Teste o microfone abaixo para verificar o acesso ao áudio.'};status(messages[event.error]||'A captura de voz foi interrompida. Tente novamente.',true)};recognition.onend=()=>{setRecording(false);if(!hadSpeechError){if($('captured').value.trim())translate();else status('Toque para falar em português')}}}else{$('mic').disabled=true;status('Voz indisponível neste navegador. Digite o texto para traduzir.',true)}
-$('mic').onclick=()=>{if(!recognition)return;if(recording){recognition.stop();return}if(!window.isSecureContext){status('O microfone exige HTTPS ou localhost.',true);return}invalidate();$('captured').value='';baseText='';sessionFinal='';hadSpeechError=false;recognition.lang=locales[(window.sintraPerson||'1')==='1'?'pt':$('language').value];setRecording(true);try{recognition.start()}catch{setRecording(false);status('Aguarde a captura anterior terminar e tente novamente.',true)}};
+function setRecording(value){
+ recording=value;
+ $('mic').classList.toggle('recording',value);
+ $('mic').setAttribute('aria-pressed',String(value));
+ $('mic').setAttribute('aria-label',value?'Parar gravação':'Iniciar gravação');
+ $('captured').readOnly=value;
+ $('language').disabled=value;
+ $('translate').disabled=value||!!request;
+ $('speak').disabled=value||!lastTranslation||!('speechSynthesis' in window);
+}
+function speak(){if(recording||!lastTranslation)return;if(!('speechSynthesis' in window)){status('Este navegador não oferece leitura de voz.',true);return}stopAudio();const utterance=new SpeechSynthesisUtterance(lastTranslation);utterance.lang=locales[lastLanguage];const voices=window.speechSynthesis.getVoices();const voice=voices.find(v=>v.lang===utterance.lang)||voices.find(v=>v.lang.startsWith(lastLanguage));if(voice)utterance.voice=voice;utterance.onerror=e=>{if(e.error!=='interrupted'&&e.error!=='canceled')status('Não foi possível reproduzir o áudio. Toque em ouvir para tentar novamente.',true)};window.speechSynthesis.speak(utterance)}
+async function translate(){if(recording){status('Pare a gravação para traduzir.');return}const text=$('captured').value.trim();if(!text){status('Fale ou digite uma frase primeiro.',true);return}if(new TextEncoder().encode(text).length>500){status('Use uma frase menor: a API aceita até 500 bytes por tradução.',true);return}invalidate();const version=generation;const person=window.sintraPerson||'1';const sourceLanguage=person==='1'?'pt':$('language').value;const language=person==='1'?$('language').value:'pt';const controller=new AbortController();request=controller;$('translate').disabled=true;status('Traduzindo…');const timeout=setTimeout(()=>controller.abort(),15000);try{const url=new URL('https://api.mymemory.translated.net/get');url.searchParams.set('q',text);url.searchParams.set('langpair',sourceLanguage+'|'+language);const response=await fetch(url,{signal:controller.signal});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();if(Number(data.responseStatus)!==200||data.quotaFinished||!data.responseData?.translatedText)throw new Error('API');if(version!==generation)return;const decoded=new DOMParser().parseFromString(data.responseData.translatedText,'text/html').documentElement.textContent;lastTranslation=decoded;lastLanguage=language;window.dispatchEvent(new CustomEvent('sintra-translation',{detail:{text,translation:decoded,language,person}}));$('translation').textContent=decoded;$('translation').classList.remove('empty');$('copy').disabled=false;$('speak').disabled=!('speechSynthesis' in window);status('Tradução pronta. Pode continuar a conversa.');if($('auto').checked&&!recording)speak()}catch(error){if(version!==generation)return;status(error.name==='AbortError'?'A tradução demorou demais. Tente novamente.':'Não foi possível traduzir. Verifique a conexão ou o limite gratuito da MyMemory.',true)}finally{clearTimeout(timeout);if(version===generation){request=null;$('translate').disabled=false}}}
+// A fresh session isolates delayed browser events from subsequent recordings.
+function cancelVoice(){
+ const previous=voiceSession;
+ voiceSession=null;
+ recognition=null;
+ if(previous){previous.cancelled=true;try{previous.engine.abort()}catch{}}
+ setRecording(false);
+}
+function startVoice(){
+ invalidate();
+ $('captured').value='';
+ const engine=new Recognition();
+ const session={engine,failed:false,cancelled:false,stopping:false};
+ voiceSession=session;
+ recognition=engine;
+ engine.lang=locales[(window.sintraPerson||'1')==='1'?'pt':$('language').value];
+ engine.continuous=false;
+ engine.interimResults=true;
+ const current=()=>voiceSession===session&&!session.cancelled;
+ engine.onstart=()=>{
+  if(!current())return;
+  if(!session.stopping)status('Ouvindo… Faça uma frase ou toque para parar.');
+ };
+ engine.onresult=event=>{
+  if(!current()||session.failed)return;
+  // SpeechRecognitionEvent.results is the full snapshot for this session.
+  // Rebuild it instead of appending: final slots may appear again in later events.
+  const parts=[];
+  for(let i=0;i<event.results.length;i++){
+   const text=event.results[i][0]?.transcript?.trim();
+   if(text)parts.push(text);
+  }
+  $('captured').value=parts.join(' ');
+ };
+ engine.onerror=event=>{
+  if(!current())return;
+  session.failed=true;
+  $('mic-help').open=true;
+  const messages={
+   'not-allowed':'O reconhecimento de voz foi recusado. Mesmo com a permissão do site ativa, o Windows ou o serviço de voz podem bloquear o acesso. Use Testar microfone abaixo.',
+   'audio-capture':'Nenhum microfone disponível. Você pode digitar o texto.',
+   'no-speech':'Não ouvi uma frase. Toque para tentar novamente.',
+   network:'O serviço de voz está indisponível. Verifique sua conexão.',
+   'service-not-allowed':'O serviço de reconhecimento de voz está bloqueado neste navegador. Teste o microfone abaixo para verificar o acesso ao áudio.'
+  };
+  status(messages[event.error]||'A captura de voz foi interrompida. Tente novamente.',true);
+  cancelVoice();
+ };
+ engine.onend=()=>{
+  if(!current())return;
+  voiceSession=null;
+  recognition=null;
+  setRecording(false);
+  if(session.failed)return;
+  if($('captured').value.trim())translate();
+  else status('Não ouvi uma frase. Toque para tentar novamente.');
+ };
+ setRecording(true);
+ try{engine.start()}catch{
+  cancelVoice();
+  status('Não foi possível iniciar a captura. Aguarde um instante e tente novamente.',true);
+ }
+}
+if(!Recognition){$('mic').disabled=true;status('Voz indisponível neste navegador. Digite o texto para traduzir.',true)}
+$('mic').onclick=()=>{
+ if(!Recognition)return;
+ if(voiceSession){
+  if(voiceSession.stopping)return;
+  voiceSession.stopping=true;
+  status('Finalizando a gravação…');
+  try{voiceSession.engine.stop()}catch{cancelVoice();status('A captura foi interrompida. Tente novamente.',true)}
+  return;
+ }
+ if(!window.isSecureContext){status('O microfone exige HTTPS ou localhost.',true);return}
+ startVoice();
+};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(lastTranslation);status('Tradução copiada.')}catch{status('Não foi possível copiar. Selecione o texto da tradução.',true)}};
 $('translate').onclick=translate;$('speak').onclick=speak;
 $('captured').addEventListener('input',()=>{invalidate();status('Toque em Traduzir texto quando terminar.')});
-$('language').onchange=()=>{if(recording){hadSpeechError=true;recognition.abort();setRecording(false)}invalidate();$('capture-language').textContent=locales[(window.sintraPerson||'1')==='1'?'pt':$('language').value];if($('captured').value.trim())translate()};
-$('clear').onclick=()=>{if(recording){hadSpeechError=true;recognition.abort()}setRecording(false);invalidate();baseText='';sessionFinal='';$('captured').value='';status(Recognition?'Toque para falar em português':'Digite o texto para traduzir.')};
+$('language').onchange=()=>{if(voiceSession)cancelVoice();invalidate();$('capture-language').textContent=locales[(window.sintraPerson||'1')==='1'?'pt':$('language').value];if($('captured').value.trim())translate()};
+$('clear').onclick=()=>{cancelVoice();invalidate();$('captured').value='';status(Recognition?'Toque para falar em português':'Digite o texto para traduzir.')};
 const connection=()=>{$('connection').hidden=navigator.onLine};window.addEventListener('online',connection);window.addEventListener('offline',connection);connection();
-window.addEventListener('pagehide',()=>{hadSpeechError=true;if(recognition&&recording)recognition.abort();invalidate()});
+window.addEventListener('pagehide',()=>{cancelVoice();invalidate()});
 </script></body></html>
