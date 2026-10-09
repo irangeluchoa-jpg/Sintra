@@ -45,3 +45,13 @@ node --test tests/server.test.mjs
 ```
 
 A suíte local verifica arquivos servidos, manifesto e ausência de configuração da IA. Não valida a precisão do reconhecimento ou da separação de falantes; isso exige uma chave válida e teste com áudio real em um celular.
+
+## Microfone permitido, mas transcrição recusada
+
+A permissão do site e a disponibilidade do serviço de reconhecimento são verificações diferentes. Abra “Microfone não funciona?” e execute o teste de cinco segundos. Ele usa captura local e uma barra de volume, sem salvar ou enviar áudio.
+
+- Se a captura for bloqueada, confira também as permissões de microfone do sistema operacional. No Windows, habilite o acesso para aplicativos da área de trabalho.
+- Se abrir sem detectar volume, verifique mudo, dispositivo de entrada e volume.
+- Se detectar áudio, mas o reconhecimento recusar, o acesso ao microfone está funcionando; o serviço de reconhecimento ou alguma política do navegador pode estar indisponível. Reinicie ou teste outro navegador compatível.
+
+Teste automatizado no Chromium: recusa do reconhecimento simulada, captura com microfone virtual e recusa de captura simulada. Isso não verifica as permissões nem o hardware do aparelho do usuário.
